@@ -24,7 +24,7 @@ _start:
     push eax
     push ebx
     call kernel_main
-    cli
 kernel_hlt:
+    cli
     hlt
     jmp kernel_hlt

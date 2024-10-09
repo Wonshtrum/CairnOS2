@@ -1,4 +1,5 @@
-SRC = arch src
+SRC_RS = $(shell find arch -type f) $(shell find src -type f)
+SRC_ISO = grub.cfg
 DIR = isodir
 BIN = $(DIR)/boot/cairnos
 ISO = cairnos.iso
@@ -6,12 +7,12 @@ QEMU = qemu-system-i386
 
 all: $(ISO)
 
-$(BIN): src
+$(BIN): $(SRC_RS)
 	cargo +nightly build --release
 	mkdir -p $(DIR)/boot/
 	cp target/x86/release/cairnos $(DIR)/boot/
 
-$(ISO): $(BIN)
+$(ISO): $(BIN) $(SRC_ISO)
 	mkdir -p $(DIR)/boot/grub
 	cp grub.cfg $(DIR)/boot/grub/
 	grub-mkrescue -o $(ISO) $(DIR)

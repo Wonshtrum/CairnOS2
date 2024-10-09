@@ -14,3 +14,12 @@ pub unsafe extern "C" fn memcpy(dst: *mut u8, src: *const u8, num: usize) -> *mu
     }
     dst
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn strlen(src: *const u8) -> usize {
+    let mut i = 0;
+    while *src.add(i) != 0 {
+        i += 1;
+    }
+    i
+}
