@@ -20,7 +20,9 @@ stack_top:
 .global _start
 .type _start, @function
 _start:
-    mov $stack_top, %esp
+    mov esp, OFFSET stack_top
+    push eax
+    push ebx
     call kernel_main
     cli
 kernel_hlt:
