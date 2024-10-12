@@ -38,7 +38,7 @@ pub extern "C" fn kernel_main(info: &multiboot::Info, magic: u32) {
     writeln!(console, "{:?}", info.get_cmdline());
     writeln!(console, "{:?}", info.get_mods());
     writeln!(console, "{:?}", info.get_syms());
-    writeln!(console, "{:?}", info.get_mmap());
+    writeln!(console, "{:#?}", info.get_mmap());
     writeln!(console, "{:?}", info.get_drives());
     writeln!(console, "{:?}", info.get_config_table());
     writeln!(console, "{:?}", info.get_boot_loader_name());

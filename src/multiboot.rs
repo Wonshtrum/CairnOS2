@@ -1,4 +1,5 @@
 use core::ffi::CStr;
+use core::fmt;
 
 use crate::vga;
 
@@ -21,7 +22,7 @@ pub struct Info {
     drives_addr: u32,
     config_table: u32,
     boot_loader_name: u32,
-    apm_table: &'static ApmTable,
+    apm_table: u32,
     vbe_control_info: u32,
     vbe_mode_info: u32,
     vbe_mode: u16,
@@ -35,6 +36,24 @@ pub struct Info {
     framebuffer_bpp: u32,
     framebuffer_type: u32,
     color_info: [u8; 5],
+}
+
+#[repr(u32)]
+#[derive(Debug, Clone, Copy)]
+pub enum MmapType {
+    Available = 1,
+    Reserved,
+    AcpiReclaimable,
+    Nvs,
+    Badram,
+}
+
+#[repr(C, packed)]
+pub struct Mmap {
+    size: u32,
+    addr: u64,
+    len: u64,
+    typ: MmapType,
 }
 
 #[derive(Debug)]
@@ -68,6 +87,15 @@ pub struct ApmTable {
 
 #[derive(Debug)]
 pub struct VBE;
+
+impl fmt::Debug for Mmap {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let addr = self.addr;
+        let len = self.len;
+        let typ = self.typ;
+        write!(f, "Mmap {{ addr: {addr:08x}, len: {len:08x}, typ: {typ:?} }}")
+    }
+}
 
 impl Info {
     pub fn is_flag_set(&self, bit: u32) -> bool {
@@ -114,9 +142,14 @@ impl Info {
         }
     }
 
-    pub fn get_mmap(&self) -> Option<(u32, u32)> {
-        self.is_flag_set(6)
-            .then_some((self.mmap_length, self.mmpa_addr))
+    pub fn get_mmap(&self) -> Option<&[Mmap]> {
+        if self.is_flag_set(6) {
+            let ptr = self.mmpa_addr as *const Mmap;
+            let len = self.mmap_length as usize / core::mem::size_of::<Mmap>();
+            Some(unsafe { core::slice::from_raw_parts(ptr, len) })
+        } else {
+            None
+        }
     }
 
     pub fn get_drives(&self) -> Option<(u32, u32)> {
@@ -134,7 +167,8 @@ impl Info {
     }
 
     pub fn get_apm_table(&self) -> Option<&ApmTable> {
-        self.is_flag_set(10).then_some(self.apm_table)
+        self.is_flag_set(10).then_some(
+            unsafe { &*(self.apm_table as *const ApmTable) })
     }
 
     pub fn get_vbe(&self) -> Option<VBE> {
