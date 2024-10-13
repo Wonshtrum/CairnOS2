@@ -23,7 +23,7 @@ run: $(ISO)
 
 .PHONY: run_term
 run_term: $(ISO)
-	$(QEMU) -cdrom $(ISO) --nographic
+	$(QEMU) -kernel $(BIN) -append "--nographic" --nographic
 
 .PHONY: gdb
 gdb: $(ISO)

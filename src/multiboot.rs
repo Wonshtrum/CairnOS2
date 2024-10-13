@@ -1,12 +1,12 @@
 use core::ffi::CStr;
-use core::fmt;
 
+use crate::mem::Mmap;
 use crate::vga;
 
 pub const MAGIC: u32 = 0x2BADB002;
 
-#[repr(C, packed)]
 #[derive(Debug)]
+#[repr(C, packed)]
 pub struct Info {
     flags: u32,
     mem_upper: u32,
@@ -38,24 +38,6 @@ pub struct Info {
     color_info: [u8; 5],
 }
 
-#[repr(u32)]
-#[derive(Debug, Clone, Copy)]
-pub enum MmapType {
-    Available = 1,
-    Reserved,
-    AcpiReclaimable,
-    Nvs,
-    Badram,
-}
-
-#[repr(C, packed)]
-pub struct Mmap {
-    size: u32,
-    addr: u64,
-    len: u64,
-    typ: MmapType,
-}
-
 #[derive(Debug)]
 pub enum Symbols {
     AOut {
@@ -71,8 +53,8 @@ pub enum Symbols {
     },
 }
 
-#[repr(C, packed)]
 #[derive(Debug)]
+#[repr(C, packed)]
 pub struct ApmTable {
     version: u16,
     cseg: u16,
@@ -86,16 +68,7 @@ pub struct ApmTable {
 }
 
 #[derive(Debug)]
-pub struct VBE;
-
-impl fmt::Debug for Mmap {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let addr = self.addr;
-        let len = self.len;
-        let typ = self.typ;
-        write!(f, "Mmap {{ addr: {addr:08x}, len: {len:08x}, typ: {typ:?} }}")
-    }
-}
+pub struct Vbe;
 
 impl Info {
     pub fn is_flag_set(&self, bit: u32) -> bool {
@@ -142,7 +115,7 @@ impl Info {
         }
     }
 
-    pub fn get_mmap(&self) -> Option<&[Mmap]> {
+    pub fn get_mmaps(&self) -> Option<&[Mmap]> {
         if self.is_flag_set(6) {
             let ptr = self.mmpa_addr as *const Mmap;
             let len = self.mmap_length as usize / core::mem::size_of::<Mmap>();
@@ -167,13 +140,13 @@ impl Info {
     }
 
     pub fn get_apm_table(&self) -> Option<&ApmTable> {
-        self.is_flag_set(10).then_some(
-            unsafe { &*(self.apm_table as *const ApmTable) })
+        self.is_flag_set(10)
+            .then_some(unsafe { &*(self.apm_table as *const ApmTable) })
     }
 
-    pub fn get_vbe(&self) -> Option<VBE> {
+    pub fn get_vbe(&self) -> Option<Vbe> {
         // TODO
-        self.is_flag_set(11).then_some(VBE)
+        self.is_flag_set(11).then_some(Vbe)
     }
 
     pub fn get_framebuffer(&self) -> Option<vga::FrameBuffer> {

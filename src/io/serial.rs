@@ -1,6 +1,7 @@
 use core::fmt;
 
 use crate::arch::x86::ports::{inb, outb};
+use crate::io::WriteBytes;
 
 pub const PORT_COM1: u16 = 0x3F8;
 
@@ -9,12 +10,13 @@ pub struct Console {
     port: u16,
 }
 
+#[allow(dead_code)]
 impl Console {
     pub unsafe fn new_uninit(port: u16) -> Self {
         Self { port }
     }
 
-    pub unsafe fn new(port: u16) -> Result<Self, ()> {
+    pub fn try_new(port: u16) -> Result<Self, ()> {
         outb(port + 1, 0x00); // disable all interrupts
         outb(port + 3, 0x80); // enable DLAB (set baud rate divisor)
         outb(port + 0, 0x03); // set divisor to 3 (lo byte) 38400 baud
@@ -37,15 +39,17 @@ impl Console {
     }
 
     fn is_transmit_ready(&self) -> bool {
-        unsafe { (inb(self.port + 5) & 0x20) != 0 }
+        inb(self.port + 5) & 0x20 != 0
     }
+}
 
-    pub fn write_byte(&mut self, byte: u8) {
+impl WriteBytes for Console {
+    fn write_byte(&mut self, byte: u8) {
         if cfg!(feature = "serial-carriage") && byte == b'\n' {
             self.write_byte(b'\r');
         }
         while !self.is_transmit_ready() {}
-        unsafe { outb(self.port, byte) }
+        outb(self.port, byte)
     }
 }
 

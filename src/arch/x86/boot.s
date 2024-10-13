@@ -24,6 +24,8 @@ _start:
     push eax
     push ebx
     call kernel_main
+.global kernel_hlt
+.type kernel_hlt, @function
 kernel_hlt:
     cli
     hlt
