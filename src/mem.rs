@@ -18,6 +18,7 @@ pub struct Mmap {
     len: u64,
     typ: MmapType,
 }
+const_assert!(@size Mmap == 24);
 
 impl fmt::Debug for Mmap {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

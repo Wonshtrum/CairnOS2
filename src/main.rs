@@ -2,6 +2,9 @@
 #![no_main]
 #![allow(clippy::identity_op)]
 
+#[macro_use]
+mod utils;
+
 mod arch;
 mod builtins;
 mod io;

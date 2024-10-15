@@ -3,6 +3,9 @@ name = "cairnos"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+debug = true
+
 [features]
 default = [
     "serial-carriage" # qemu doesn't return carriage upon new line

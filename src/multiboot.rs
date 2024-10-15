@@ -33,10 +33,11 @@ pub struct Info {
     framebuffer_pitch: u32,
     framebuffer_width: u32,
     framebuffer_height: u32,
-    framebuffer_bpp: u32,
-    framebuffer_type: u32,
+    framebuffer_bpp: u8,
+    framebuffer_type: u8,
     color_info: [u8; 5],
 }
+const_assert!(@size Info == 115);
 
 #[derive(Debug)]
 pub enum Symbols {
@@ -58,7 +59,7 @@ pub enum Symbols {
 pub struct ApmTable {
     version: u16,
     cseg: u16,
-    offset: u16,
+    offset: u32,
     cseg_16: u16,
     dseg: u16,
     flags: u16,
@@ -66,6 +67,7 @@ pub struct ApmTable {
     cseg_16_len: u16,
     dseg_len: u16,
 }
+const_assert!(@size ApmTable == 20);
 
 #[derive(Debug)]
 pub struct Vbe;
@@ -119,6 +121,7 @@ impl Info {
         if self.is_flag_set(6) {
             let ptr = self.mmpa_addr as *const Mmap;
             let len = self.mmap_length as usize / core::mem::size_of::<Mmap>();
+            // TODO: Apparently the Mmap pairs can have different sizes
             Some(unsafe { core::slice::from_raw_parts(ptr, len) })
         } else {
             None
