@@ -15,10 +15,12 @@ mod multiboot;
 use core::fmt::Write;
 use core::panic::PanicInfo;
 
+use arch::gdt;
 use io::serial;
 use io::vga::{self, Border, Color};
 use io::WriteBytes;
 use lazy::{Lazy, LazyMut};
+use utils::bits::u2;
 
 struct Context {
     info: &'static multiboot::Info,
@@ -30,7 +32,10 @@ const WALLPAPER: &[u8] = include_bytes!("../assets/wallpaper.vga");
 static SERIAL: LazyMut<serial::Console> = LazyMut::new();
 static SCREEN: LazyMut<vga::Console> = LazyMut::new();
 static STDOUT: LazyMut<&mut dyn Write> = LazyMut::new();
+
 static CONTEXT: Lazy<Context> = Lazy::new();
+
+static GDT: LazyMut<[gdt::Entry; 5]> = LazyMut::new();
 
 #[no_mangle]
 pub extern "C" fn kernel_main(info: &'static multiboot::Info, magic: u32) {
@@ -58,6 +63,26 @@ pub extern "C" fn kernel_main(info: &'static multiboot::Info, magic: u32) {
     } else {
         unsafe { STDOUT.init(SERIAL.get_mut()) };
     }
+
+    let segments = gdt::default_segments();
+    for segment in &segments {
+        eprintln!(
+            "{segment:x?} -> {:x} {:x}",
+            segment.get_flags(),
+            segment.get_access_byte()
+        );
+    }
+    unsafe { GDT.init(segments) };
+    gdt::load(GDT.get());
+    let code_sel = gdt::selector(1, false, u2::V00);
+    let data_sel = gdt::selector(2, false, u2::V00);
+    gdt::reload_cs(code_sel);
+    gdt::reload_ds(data_sel);
+    gdt::reload_ss(data_sel);
+    gdt::reload_es(data_sel);
+    gdt::reload_fs(data_sel);
+    gdt::reload_gs(data_sel);
+    eprintln!("GDT: {:#08X?}", GDT.get());
 
     println!("Hello from CairnOS!");
     println!("{:b}", info.get_flags());

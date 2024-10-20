@@ -20,5 +20,6 @@ end
 set disassembly-flavor intel
 target remote localhost:1234
 b _start
+b kernel_hlt
 c
 c
