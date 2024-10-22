@@ -1,45 +1,48 @@
 use core::fmt;
 
-use crate::arch::x86::ports::{inb, outb};
+use crate::arch::ports::Port;
 use crate::io::WriteBytes;
 
 pub const PORT_COM1: u16 = 0x3F8;
 
 #[derive(Debug)]
 pub struct Console {
-    port: u16,
+    port: Port,
 }
 
 #[allow(dead_code)]
 impl Console {
     pub unsafe fn new_uninit(port: u16) -> Self {
-        Self { port }
+        Self {
+            port: Port::new(port),
+        }
     }
 
     pub fn try_new(port: u16) -> Result<Self, ()> {
-        outb(port + 1, 0x00); // disable all interrupts
-        outb(port + 3, 0x80); // enable DLAB (set baud rate divisor)
-        outb(port + 0, 0x03); // set divisor to 3 (lo byte) 38400 baud
-        outb(port + 1, 0x00); //                  (hi byte)
-        outb(port + 3, 0x03); // 8 bits, no parity, one stop bit
-        outb(port + 2, 0xC7); // enable FIFO, clear them, with 14-byte threshold
-        outb(port + 4, 0x0B); // IRQs enabled, RTS/DSR set
-        outb(port + 4, 0x1E); // set in loopback mode, test the serial chip
-        outb(port + 0, 0xAE); // test serial chip (send byte 0xAE and check if serial returns same byte)
+        let port = Port::new(port);
+        port.add(1).out_u8(0x00); // disable all interrupts
+        port.add(3).out_u8(0x80); // enable DLAB (set baud rate divisor)
+        port.add(0).out_u8(0x03); // set divisor to 3 (lo byte) 38400 baud
+        port.add(1).out_u8(0x00); //                  (hi byte)
+        port.add(3).out_u8(0x03); // 8 bits, no parity, one stop bit
+        port.add(2).out_u8(0xC7); // enable FIFO, clear them, with 14-byte threshold
+        port.add(4).out_u8(0x0B); // IRQs enabled, RTS/DSR set
+        port.add(4).out_u8(0x1E); // set in loopback mode, test the serial chip
+        port.add(0).out_u8(0xAE); // test serial chip (send byte 0xAE and check if serial returns same byte)
 
         // check if serial is faulty (i.e: not same byte as sent)
-        if inb(port) != 0xAE {
+        if port.in_u8() != 0xAE {
             return Err(());
         }
 
         // If serial is not faulty set it in normal operation mode
         // (not-loopback with IRQs enabled and OUT#1 and OUT#2 bits enabled)
-        outb(port + 4, 0x0F);
+        port.add(4).out_u8(0x0F);
         Ok(Self { port })
     }
 
     fn is_transmit_ready(&self) -> bool {
-        inb(self.port + 5) & 0x20 != 0
+        self.port.add(5).in_u8() & 0x20 != 0
     }
 }
 
@@ -49,7 +52,7 @@ impl WriteBytes for Console {
             self.write_byte(b'\r');
         }
         while !self.is_transmit_ready() {}
-        outb(self.port, byte)
+        self.port.out_u8(byte)
     }
 }
 

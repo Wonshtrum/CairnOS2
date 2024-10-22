@@ -1,19 +1,13 @@
 #![allow(dead_code)]
 
-use crate::utils::bits::u2;
 use core::arch::asm;
 
-#[derive(Debug)]
-#[repr(C, packed(2))]
-struct Descriptor {
-    size: u16,
-    offset: u32,
-}
-const_assert!(@size Descriptor == 6);
+use crate::arch::tables::Descriptor;
+use crate::utils::bits::u2;
 
 pub fn load(entries: &[Entry]) {
     let descriptor = Descriptor {
-        size: core::mem::size_of_val(entries) as u16,
+        size: core::mem::size_of_val(entries) as u16 - 1,
         offset: entries.as_ptr() as u32,
     };
     unsafe {

@@ -1,8 +1,11 @@
 use core::fmt;
 use core::ops::Deref;
 
-use crate::arch::x86::ports::{inb, outb};
+use crate::arch::ports::Port;
 use crate::io::WriteBytes;
+
+const CRTC_INDEX: Port = Port::new(0x3D4);
+const CRTC_DATA: Port = Port::new(0x3D5);
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy)]
@@ -129,15 +132,15 @@ impl Console {
     }
 
     pub fn enable_cursor(&mut self, start: u8, end: u8) {
-        outb(0x3D4, 0x0A);
-        outb(0x3D5, (inb(0x3D5) & 0xC0) | start);
-        outb(0x3D4, 0x0B);
-        outb(0x3D5, (inb(0x3D5) & 0xE0) | end);
+        CRTC_INDEX.out_u8(0x0A);
+        CRTC_DATA.out_u8((CRTC_DATA.in_u8() & 0xC0) | start);
+        CRTC_INDEX.out_u8(0x0B);
+        CRTC_DATA.out_u8((CRTC_DATA.in_u8() & 0xE0) | end);
     }
 
     pub fn disable_cursor(&mut self) {
-        outb(0x3D4, 0x0A);
-        outb(0x3D5, 0x20);
+        CRTC_INDEX.out_u8(0x0A);
+        CRTC_DATA.out_u8(0x20);
     }
 
     pub fn get_cursor(&self) -> usize {
@@ -145,10 +148,10 @@ impl Console {
     }
 
     pub fn set_cursor(&mut self, pos: usize) {
-        outb(0x3D4, 0x0F);
-        outb(0x3D5, (pos & 0xFF) as u8);
-        outb(0x3D4, 0x0E);
-        outb(0x3D5, ((pos >> 8) & 0xFF) as u8);
+        CRTC_INDEX.out_u8(0x0F);
+        CRTC_DATA.out_u8((pos & 0xFF) as u8);
+        CRTC_INDEX.out_u8(0x0E);
+        CRTC_DATA.out_u8(((pos >> 8) & 0xFF) as u8);
     }
 
     pub fn update_cursor(&mut self) {
