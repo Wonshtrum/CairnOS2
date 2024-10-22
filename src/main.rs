@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 #![allow(clippy::identity_op)]
+#![feature(abi_x86_interrupt)]
 
 #[macro_use]
 mod utils;
@@ -15,7 +16,7 @@ mod multiboot;
 use core::fmt::Write;
 use core::panic::PanicInfo;
 
-use arch::gdt;
+use arch::tables::{gdt, idt};
 use io::serial;
 use io::vga::{self, Border, Color};
 use io::WriteBytes;
@@ -36,6 +37,7 @@ static STDOUT: LazyMut<&mut dyn Write> = LazyMut::new();
 static CONTEXT: Lazy<Context> = Lazy::new();
 
 static GDT: LazyMut<[gdt::Entry; 5]> = LazyMut::new();
+static IDT: LazyMut<[idt::Entry; 256]> = LazyMut::new();
 
 #[no_mangle]
 pub extern "C" fn kernel_main(info: &'static multiboot::Info, magic: u32) {
@@ -65,13 +67,6 @@ pub extern "C" fn kernel_main(info: &'static multiboot::Info, magic: u32) {
     }
 
     let segments = gdt::default_segments();
-    for segment in &segments {
-        eprintln!(
-            "{segment:x?} -> {:x} {:x}",
-            segment.get_flags(),
-            segment.get_access_byte()
-        );
-    }
     unsafe { GDT.init(segments) };
     gdt::load(GDT.get());
     let code_sel = gdt::selector(1, false, u2::V00);
@@ -83,6 +78,13 @@ pub extern "C" fn kernel_main(info: &'static multiboot::Info, magic: u32) {
     gdt::reload_fs(data_sel);
     gdt::reload_gs(data_sel);
     eprintln!("GDT: {:#08X?}", GDT.get());
+
+
+    idt::init(0x20, 0x28);
+    let gates = idt::default_gates(code_sel);
+    unsafe { IDT.init(gates) };
+    idt::load(IDT.get());
+    eprintln!("IDT: {:#08X?}", IDT.get());
 
     println!("Hello from CairnOS!");
     println!("{:b}", info.get_flags());

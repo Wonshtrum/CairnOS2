@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use core::fmt;
 use core::arch::asm;
 
 use crate::arch::tables::Descriptor;
@@ -52,7 +53,7 @@ pub fn selector(index: u16, ti: bool, dpl: u2) -> u16 {
     (dpl as u16) | ((ti as u16) << 2) | ((index & 0x1FFF) << 3)
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct Entry(u64);
 
 #[derive(Clone, Copy)]
@@ -61,6 +62,14 @@ pub enum SystemSegmentType {
     Ldt = 0x2,
     TssAvailable = 0x9,
     TssBusy = 0xB,
+}
+
+impl fmt::Debug for Entry {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str("Segment(")?;
+        self.0.fmt(f)?;
+        f.write_str(")")
+    }
 }
 
 impl Entry {

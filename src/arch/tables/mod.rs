@@ -1,4 +1,5 @@
 pub mod gdt;
+pub mod idt;
 
 #[derive(Debug)]
 #[repr(C, packed(2))]
